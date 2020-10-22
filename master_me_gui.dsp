@@ -19,18 +19,16 @@
 declare name      "masterme_gui";
 declare author    "Klaus Scheuermann";
 declare version   "0.09.13";
-
-
 declare copyright "(C) 2020 Klaus Scheuermann";
+
 import("stdfaust.lib");
 
 // main
 process = _,_ : 
-input_meter : 
-ba.bypass2(checkbox("bypass all"), 
-gain : dc : leveler_stereo : multi_ms_comp : limiter_dario : diffN_cubic(cubic_st(4))) : 
-output_meter;
-
+        input_meter : 
+        ba.bypass2(checkbox("bypass all"), 
+        gain : dc : leveler_stereo : multi_ms_comp : limiter_dario : diffN_cubic(cubic_st(4))) : 
+        output_meter;
 
 // functions
 
@@ -60,19 +58,15 @@ leveler_dualmono = leveler*0.3,leveler*0.3;
 // leveler with high-pass filer on the regulating path (stereo linked)
 leveler_stereo = _,_ <: (_,calcAB : *), (_,calcAB : *) : _,_;
 
-calcA = (fi.highpass(2,60):(ma.tanh <: * : fi.lowpass(1, t) : sqrt) - 1 : abs)
+calcAux = (fi.highpass(2,60):(ma.tanh <: * : fi.lowpass(1, t) : sqrt) - 1 : abs)
 	with {
         t = hgroup("tabA", vgroup("[2]GR Leveler",hslider("leveler time", 0.05,0.01,1,0.01)));
     };
-calcB = (fi.highpass(2,60):(ma.tanh <: * : fi.lowpass(1, t) : sqrt) - 1 : abs)
-	with {
-        t = hgroup("tabA", vgroup("[2]GR Leveler",hslider("leveler time", 0.05,0.01,1,0.01)));
-    };
+
+calcA = calcAux;
+calcB = calcAux;
 
 calcAB = max(calcA,calcB) : hgroup("tabA", vgroup("[2]GR Leveler",neg_vmeter));
-
-
-
 
 // stereo to m/s encoder
 ms_enc = _*0.5,_*0.5 <: +, -;
@@ -95,7 +89,6 @@ comp(n,ratio,thresh,att,rel,w) = par(i,n, drywet(w,co.compressor_mono(ratio,thre
 // multiband m/s compressor (no channel linking)
 multi_ms_comp =  ms_enc : split3 : diffN_mb(comp(6,2,-16,0.02,0.05,0.6)) : join3 : ms_dec;
 
-
 // config of Dario's Lookahead Limiter
 limiter_dario = limiter_lookaheadN(2,.01, 0.8 , .001, .005, 0.1);
 
@@ -114,18 +107,14 @@ si.bus(N) <: par(i, N, @ (lag * ma.SR)) , (scaling <: si.bus(N)) : ro.interleave
         maxN(N) = max(maxN(N - 1));
     };
 
-
 // cubic nonlinear distortion by Dario Sanfilippo
-cubic(x) = select3( cond,   -2/3,
-                            x-(x*x*x/3),
-                            2/3)
+cubic(x) = select3(cond, -2/3, x-(x*x*x/3), 2/3)
     with {
-        cond =  (   (x : >(-1)),
+        cond = ((x : >(-1)),
                 (x : <(1)) : &),
-            (x : >=(1))*2 :> _;
+            	(x : >=(1))*2 :> _;
     };
 cubic_st(d) = _/d,_/d : cubic, cubic : _*d,_*d;
-
 
 // metering
 vmeter(x)       = attach(x, envelop(x) : vbargraph("[unit:dB]", -70, 0));
@@ -143,39 +132,20 @@ envelop_neg     = abs : max(ba.db2linear(-70)) : ba.linear2db : min(10)  : max ~
 diffn(n,fx) = par(i,n, _ <: attach(fx,(_ <: fx,_ : - : dmeter)));
 diff1(fx) = _ <: attach(fx,(_ <: fx,_ : - : gmeter));
 
-//  diffN by Stéphane Letz
-diffN(fx) = m_in <: fx,(m_in <: (fx,m_in) : ro.interleave(ins,2) : m_sub : m_dmeter) 
+//  diffN_meter by Stéphane Letz
+diffN_meter(meter, fx) = m_in <: fx,(m_in <: (fx,m_in) 
+            : ro.interleave(ins,2) : m_sub : m_dmeter) 
             : ro.interleave(ins,2) : m_attach
 with {
     ins = inputs(fx);
     m_in = par(i,ins,_);
     m_sub = par(i,ins,m_gr);
-    m_dmeter = par(i,ins,vgroup("diffN",gmeter));
+    m_dmeter = par(i,ins,meter);
     m_attach = par(i,ins,attach);
     m_gr(fx) = _ <: (1 -(fx,_ : -));
 };
 
-// diffN for the multiband m/s compressor
-diffN_mb(fx) = m_in <: fx,(m_in <: (fx,m_in) : ro.interleave(ins,2) : m_sub : m_dmeter) 
-            : ro.interleave(ins,2) : m_attach
-with {
-    ins = inputs(fx);
-    m_in = par(i,ins,_);
-    m_sub = par(i,ins,m_gr);
-    m_dmeter = par(i,ins,hgroup("tabA",vgroup("[3]GR mb_ms_comp",gmeter)));
-    m_attach = par(i,ins,attach);
-    m_gr(fx) = _ <: (1 -(fx,_ : -));
-};
+// Use of previous generic function with partial application (giving the first 'meter' parameter)
+diffN_mb = diffN_meter(hgroup("tabA",vgroup("[3]GR mb_ms_comp", gmeter)));
 
-// diffN for the cubic clipper
-diffN_cubic(fx) = m_in <: fx,(m_in <: (fx,m_in) : ro.interleave(ins,2) : m_sub : m_dmeter) 
-            : ro.interleave(ins,2) : m_attach
-with {
-    ins = inputs(fx);
-    m_in = par(i,ins,_);
-    m_sub = par(i,ins,m_gr);
-    m_dmeter = par(i,ins,hgroup("tabA", vgroup("[5]GR cubic_clipper",gmeter)));
-    m_attach = par(i,ins,attach);
-    m_gr(fx) = _ <: (1 -(fx,_ : -));
-};
-
+diffN_cubic = diffN_meter(hgroup("tabA", vgroup("[5]GR cubic_clipper", gmeter)));
