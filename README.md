@@ -1,9 +1,9 @@
 # About master_me
-maste_me is an automatic dynamics processor originally developed for the ‘quarantine sessions' - a distributed electroacoustic network improvisation hosted weekly by Stanford University’s CCRMA Institute in creative response to the challenges of the Covid-19 pandemic. Meanwhile, it has been used and adapted for various other streaming events.
+maste_me is an automatic dynamics processor originally developed for the ‘quarantine sessions' - a distributed electroacoustic network improvisation hosted weekly by Stanford University’s [CCRMA](https://ccrma.stanford.edu/) Institute in creative response to the challenges of the Covid-19 pandemic. Meanwhile, it has been used and adapted for various other streaming events.
 
 master_me is meant as an automatic helper tool for live performances and live recordings. Applying final touches to the audio stream, it prevents clipping and distortion and makes the sound more balanced overall. master_me is NOT meant to act as a robot that automatically masters your music (which hopefully deserves more attention!).
 
-The project is coded in Faust, a functional programming language for sound synthesis and audio processing, which is developed at the GRAME Research Lab in Lyon, France.
+The project is coded in [Faust](https://faust.grame.fr/), a functional programming language for sound synthesis and audio processing, which is developed at the [GRAME Research Lab](https://www.grame.fr/recherche) in Lyon, France.
 
 master_me is a free and open-source software (FOSS, GNU General Public License) and can be compiled for various platforms and operating systems.
 
@@ -26,6 +26,6 @@ The ‘look-ahead limiter’ takes care of extreme peaks.
 The ‘clipper’ takes care of peaks that make it through the limiter, peak-stop style.
 
 # About the developer
-master_me was created by Berlin-based Mastering Engineer and Sound Experimentalist Klaus Scheuermann. Over the past 20 years, he has mastered countless albums and worked with artists in audiophile jazz as well as sound fetishists from the electronic music scene.
+master_me was created by Berlin-based Mastering Engineer and Sound Experimentalist [Klaus Scheuermann](https://4ohm.de). Over the past 20 years, he has mastered countless albums and worked with artists in audiophile jazz as well as sound fetishists from the electronic music scene.
 
 His collaborations include Philip Caterine, Lars Danielsson, Benoît Delbecq, Klaus Doldinger, Wolfgang Haffner, Kalipo, Rolf & Joachim Kühn, Scott Matthew, Nils Landgren, Christian Lillinger, Jan Lundgren, Nguyên Lê, Leszek Mozdzer,  Emile Parisien & Vincent Peirani, Chris Schwarzwälder,  Michael Wollny, and many more.
