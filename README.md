@@ -31,7 +31,5 @@ master_me was created by Berlin-based Mastering Engineer and Sound Experimentali
 His collaborations include Philip Caterine, Lars Danielsson, Benoît Delbecq, Klaus Doldinger, Wolfgang Haffner, Kalipo, Rolf & Joachim Kühn, Scott Matthew, Nils Landgren, Christian Lillinger, Jan Lundgren, Nguyên Lê, Leszek Mozdzer,  Emile Parisien & Vincent Peirani, Chris Schwarzwälder,  Michael Wollny, and many more.
 
 # Contact information
-Feel free to contact me:
-
 [Email](mailto:info@4ohm.de) - [Website](https://4ohm.de) - [Mastodon](https://chaos.social/@trummerschlunk)
 
