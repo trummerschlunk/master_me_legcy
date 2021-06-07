@@ -29,3 +29,9 @@ The ‘clipper’ takes care of peaks that make it through the limiter, peak-sto
 master_me was created by Berlin-based Mastering Engineer and Sound Experimentalist [Klaus Scheuermann](https://4ohm.de). Over the past 20 years, he has mastered countless albums and worked with artists in audiophile jazz as well as sound fetishists from the electronic music scene.
 
 His collaborations include Philip Caterine, Lars Danielsson, Benoît Delbecq, Klaus Doldinger, Wolfgang Haffner, Kalipo, Rolf & Joachim Kühn, Scott Matthew, Nils Landgren, Christian Lillinger, Jan Lundgren, Nguyên Lê, Leszek Mozdzer,  Emile Parisien & Vincent Peirani, Chris Schwarzwälder,  Michael Wollny, and many more.
+
+# Contact information
+Feel free to contact me:
+
+[Email](mailto:info@4ohm.de) - [Website](https://4ohm.de) - [Mastodon](https://chaos.social/@trummerschlunk)
+
