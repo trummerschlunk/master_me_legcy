@@ -23,7 +23,7 @@ The ‘multiband-mid/side-compressor’ is a replica from Klaus Scheuermann's ma
 
 The ‘look-ahead limiter’ takes care of extreme peaks.
 
-The ‘clipper’ takes care of peaks that make it through the limiter, peak-stop style.
+The ‘clipper’ is actually a brickwall-limiter.
 
 # Installation
 Various targets can easily be compiled. Click [here](https://faustide.grame.fr/?code=https://raw.githubusercontent.com/trummerschlunk/master_me/master/master_me_gui.dsp) and export your desired format/plattform.
