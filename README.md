@@ -26,9 +26,7 @@ The ‘look-ahead limiter’ takes care of extreme peaks.
 The ‘clipper’ takes care of peaks that make it through the limiter, peak-stop style.
 
 # Installation
-Some targets are included. Just place it in your plugin folder.
-
-More targets can easily be compiled. Click [here](https://faustide.grame.fr/?code=https://raw.githubusercontent.com/trummerschlunk/master_me/master/master_me_gui.dsp) and export your desired format/plattform.
+Various targets can easily be compiled. Click [here](https://faustide.grame.fr/?code=https://raw.githubusercontent.com/trummerschlunk/master_me/master/master_me_gui.dsp) and export your desired format/plattform.
 
 # About the developer
 master_me was created by Berlin-based Mastering Engineer and Sound Experimentalist [Klaus Scheuermann](https://4ohm.de). Over the past 20 years, he has mastered countless albums and worked with artists in audiophile jazz as well as sound fetishists from the electronic music scene.
