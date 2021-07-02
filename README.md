@@ -12,6 +12,7 @@ The Faust DSP code can directly be tested in the [Faust Web IDE](https://faustid
 
 # Signal flow
 ![master_me screenshot](https://github.com/trummerschlunk/master_me/blob/master/master_me_signal_flow.png)
+(the diagram above is partially outdated)
 
 In order to nudge sources to more dynamic headroom, an initial volume gain is applied.
 
