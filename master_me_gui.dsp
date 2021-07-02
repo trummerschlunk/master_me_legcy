@@ -14,7 +14,7 @@
  * some building blocks by Stéphane Letz
  * a lot of help came from the faust community, especially sletz, magnetophone and dario sanphilippo
 */
-declare name      "masterme_gui";
+declare name      "master_me_gui";
 declare author    "Klaus Scheuermann";
 declare version   "2.0";
 declare copyright "(C) 2021 Klaus Scheuermann";
@@ -50,13 +50,13 @@ dc = fi.dcblocker,fi.dcblocker;
 // LEVELER
 LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) with{
     // leveler headroom gain
-    g = hgroup("tabA", vgroup("[1]Headroom",vslider("gain[unit:dB]",20,0,30,1))) : si.smoo :ba.db2linear;
+    g = hgroup("MASTER_ME", vgroup("[1]HEADROOM",vslider("gain[unit:dB]",20,0,30,1))) : si.smoo :ba.db2linear;
 
     // leveler calculation
     calc(sc) = sc * 6 * g : fi.highpass(2,50) : (ma.tanh <: * : lp1p(tg) : sqrt) - 1 : abs : ba.linear2db *1.5 : meter_leveler : ba.db2linear 
     with {
-        t= hgroup("tabA", vgroup("[2]Leveler",hslider("[3]leveler speed", 0.02,0.01,0.1,0.01))) ;
-        tg = gate(sc) * t : hgroup("tabA", vgroup("[2]Leveler", hbargraph("[2]leveler speed with gate",0,0.1))) ; 
+        t= hgroup("MASTER_ME", vgroup("[2]LEVELER",hslider("[3]speed", 0.02,0.01,0.1,0.01))) ;
+        tg = gate(sc) * t : hgroup("MASTER_ME", vgroup("[2]LEVELER", hbargraph("[2]speed + gate",0,0.1))) ; 
     };
 
     lp1p(cf, x) = +(x * (1 - b)) ~ (*(b) + init)
@@ -67,7 +67,7 @@ LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) with{
         };
 
     gate(sc) = gate_gain_mono(g_thr, 0.01, 0.2, 0.1, abs(sc) ) with {
-    g_thr = hgroup("tabA", vgroup("[2]Leveler",hslider("gate threshold[unit:dB]", -60,-90,0,1)));
+    g_thr = hgroup("MASTER_ME", vgroup("[2]LEVELER",hslider("leveler gate threshold[unit:dB]", -60,-90,0,1)));
     };
 
     // from library
@@ -83,7 +83,7 @@ LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) with{
     };
 
     //metering
-    meter_leveler = hgroup("tabA", vgroup("[2]Leveler", hbargraph("[1]gain reduction[unit:dB]",-36,0)));
+    meter_leveler = hgroup("MASTER_ME", vgroup("[2]LEVELER", hbargraph("[1]gain reduction[unit:dB]",-36,0)));
 
     //variable t fpr  future use
     //brake(sc) = sc : an.abs_envelope_rect(1) ^(0.1)  : hgroup("tabA", vgroup("[2]GR Leveler", hbargraph("brake",0,1)));
@@ -106,7 +106,7 @@ MB_MS_COMP = ms_enc : split3 : comp6 : join3 : ms_dec with{
 
     // 6ch FB compressor + mb_ms version
     comp6 = co.FBcompressor_N_chan(0.6,-15,0.02,0.5,6,0,0.3,meter_comp6,6);
-    meter_comp6 =  _<:attach( ba.linear2db:  hgroup("tabA",vgroup("[3]GR mb_ms_comp", hbargraph("[unit:db]", -6,0))));
+    meter_comp6 =  _<:attach( ba.linear2db:  hgroup("MASTER_ME",vgroup("[3]MULTIBAND MID-SIDE COMPRESSOR", hbargraph("[unit:db]", -6,0))));
 
 };
 
@@ -140,13 +140,10 @@ LIMITER = limiter_lad_stereo(limiter_lad_lookahead, limiter_lad_ceil, limiter_la
       };
 
     // LIMITER metering
-    meter_limiter_lad_N = _ <: attach(si.smoo : ba.linear2db : hgroup("tabA",hgroup("[7]LIMITER",vbargraph("[8][unit:dB]GR",-12,0))));
+    meter_limiter_lad_N = _ <: attach(si.smoo : ba.linear2db : hgroup("MASTER_ME",hgroup("[7]LIMITER",vbargraph("[8][unit:dB]GR",-12,0))));
 };
 
 
-
-//BRICKWALL LIMITER
-//BRICKWALL = _,_ : (co.limiter_lad_bw, co.limiter_lad_bw);
 
 BRICKWALL = limiter_lad_stereo(limiter_lad_lookahead, limiter_lad_ceil, limiter_lad_attack, limiter_lad_hold, limiter_lad_release) with{
     
@@ -176,15 +173,15 @@ BRICKWALL = limiter_lad_stereo(limiter_lad_lookahead, limiter_lad_ceil, limiter_
            maxN(N) = max(maxN(N - 1));
       };
 
-    // LIMITER metering
-    meter_limiter_lad_N = _ <: attach(si.smoo : ba.linear2db : hgroup("tabA",hgroup("[8]BRICKWALL",vbargraph("[8][unit:dB]GR",-12,0))));
+    // BRICKWALL metering
+    meter_limiter_lad_N = _ <: attach(si.smoo : ba.linear2db : hgroup("MASTER_ME",hgroup("[8]BRICKWALL",vbargraph("[8][unit:dB]GR",-12,0))));
 };
 
 
 
 // METERING
-input_meter = hgroup("tabA", hgroup("[0]Input",vmeter)), hgroup("tabA", hgroup("[0]Input",vmeter));
-output_meter = hgroup("tabA", hgroup("[9]Output",vmeter)), hgroup("tabA", hgroup("[9]Output",vmeter));
+input_meter = hgroup("MASTER_ME", hgroup("[0]INPUT",vmeter)), hgroup("MASTER_ME", hgroup("[0]INPUT",vmeter));
+output_meter = hgroup("MASTER_ME", hgroup("[9]OUTPUT",vmeter)), hgroup("MASTER_ME", hgroup("[9]OUTPUT",vmeter));
 
 vmeter(x)       = attach(x, envelop(x) : vbargraph("[unit:dB]", -70, 0));
 hmeter(x)       = attach(x, envelop(x) : hbargraph("[unit:dB]", -50, 0));
