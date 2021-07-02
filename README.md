@@ -13,7 +13,7 @@ The Faust DSP code can directly be tested in the [Faust Web IDE](https://faustid
 # Signal flow
 ![master_me screenshot](https://github.com/trummerschlunk/master_me/blob/master/master_me_signal_flow.png)
 
-In order to nudge sources to more dynamic headroom, an initial (adjustable) volume gain is applied. (Hint: less gain does not lead to less compression but to less available headroom for master_me)
+In order to nudge sources to more dynamic headroom, an initial volume gain is applied.
 
 DC-filtering is applied.
 
