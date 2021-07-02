@@ -50,10 +50,11 @@ dc = fi.dcblocker,fi.dcblocker;
 // LEVELER
 LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) with{
     // leveler headroom gain
-    g = hgroup("MASTER_ME", vgroup("[1]HEADROOM",vslider("gain[unit:dB]",20,0,30,1))) : si.smoo :ba.db2linear;
-
+    //g = hgroup("MASTER_ME", vgroup("[1]HEADROOM",vslider("gain[unit:dB]",20,0,30,1))) : si.smoo :ba.db2linear;
+    g = 20 : ba.db2linear;
+    
     // leveler calculation
-    calc(sc) = sc * 6 * g : fi.highpass(2,50) : (ma.tanh <: * : lp1p(tg) : sqrt) - 1 : abs : ba.linear2db *1.5 : meter_leveler : ba.db2linear 
+    calc(sc) = sc * 6 * g : fi.highpass(2,60) : (ma.tanh <: * : lp1p(tg) : sqrt) - 1 : abs : ba.linear2db *1.5 : meter_leveler : ba.db2linear 
     with {
         t= hgroup("MASTER_ME", vgroup("[2]LEVELER",hslider("[3]speed", 0.02,0.01,0.1,0.01))) ;
         tg = gate(sc) * t : hgroup("MASTER_ME", vgroup("[2]LEVELER", hbargraph("[2]speed + gate",0,0.1))) ; 
@@ -61,13 +62,12 @@ LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) with{
 
     lp1p(cf, x) = +(x * (1 - b)) ~ (*(b) + init)
         with {
-            //init = .5 - .5';
-            init = 0.65 - 0.65';
+            init = 0.62 - 0.62';
             b = exp(-2 * ma.PI * cf / ma.SR);
         };
 
     gate(sc) = gate_gain_mono(g_thr, 0.01, 0.2, 0.1, abs(sc) ) with {
-    g_thr = hgroup("MASTER_ME", vgroup("[2]LEVELER",hslider("leveler gate threshold[unit:dB]", -60,-90,0,1)));
+        g_thr = hgroup("MASTER_ME", vgroup("[2]LEVELER",hslider("leveler gate threshold[unit:dB]", -60,-90,0,1)));
     };
 
     // from library
@@ -83,7 +83,7 @@ LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) with{
     };
 
     //metering
-    meter_leveler = hgroup("MASTER_ME", vgroup("[2]LEVELER", hbargraph("[1]gain reduction[unit:dB]",-36,0)));
+    meter_leveler = _ <: _, _+20 : attach(hgroup("MASTER_ME", vgroup("[2]LEVELER", hbargraph("[1]gain[unit:dB]",-20,20))));
 
     //variable t fpr  future use
     //brake(sc) = sc : an.abs_envelope_rect(1) ^(0.1)  : hgroup("tabA", vgroup("[2]GR Leveler", hbargraph("brake",0,1)));
