@@ -27,7 +27,7 @@ process(x1, x2) = x1,x2 :
     input_meter :
     dc :
     ba.bypass2(checkbox("bypass all"), 
-    LEVELER(max(abs(x1),abs(x2))) : 
+    hgroup("MASTER_ME", vgroup("[2]LEVELER", ba.bypass2(checkbox("bypass leveler"),LEVELER(max(abs(x1),abs(x2)))))) : 
     gain(-2) : 
     MB_MS_COMP :
     LIMITER :
@@ -54,10 +54,10 @@ LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) with{
     g = 20 : ba.db2linear;
     
     // leveler calculation
-    calc(sc) = sc * 6 * g : fi.highpass(2,60) : (ma.tanh <: * : lp1p(tg) : sqrt) - 1 : abs : ba.linear2db *1.5 : meter_leveler : ba.db2linear 
+    calc(sc) = sc * 6 * g : fi.highpass(1,180) : (ma.tanh <: * : lp1p(tg) : sqrt) - 1 : abs : ba.linear2db *1.5 : meter_leveler : ba.db2linear 
     with {
-        t= hgroup("MASTER_ME", vgroup("[2]LEVELER",hslider("[3]speed", 0.02,0.01,0.1,0.01))) ;
-        tg = gate(sc) * t : hgroup("MASTER_ME", vgroup("[2]LEVELER", hbargraph("[2]speed + gate",0,0.1))) ; 
+        t= hslider("[3]speed", 0.02,0.01,0.1,0.01) ;
+        tg = gate(sc) * t : hbargraph("[2]speed + gate",0,0.1) ; 
     };
 
     lp1p(cf, x) = +(x * (1 - b)) ~ (*(b) + init)
@@ -67,7 +67,7 @@ LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) with{
         };
 
     gate(sc) = gate_gain_mono(g_thr, 0.01, 0.2, 0.1, abs(sc) ) with {
-        g_thr = hgroup("MASTER_ME", vgroup("[2]LEVELER",hslider("leveler gate threshold[unit:dB]", -60,-90,0,1)));
+        g_thr = hslider("[4]leveler gate threshold[unit:dB]", -60,-90,0,1);
     };
 
     // from library
@@ -83,7 +83,7 @@ LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) with{
     };
 
     //metering
-    meter_leveler = _ <: _, _+20 : attach(hgroup("MASTER_ME", vgroup("[2]LEVELER", hbargraph("[1]gain[unit:dB]",-20,20))));
+    meter_leveler = _ <: _, _+20 : attach(hbargraph("[1]gain[unit:dB]",-20,20));
 
     //variable t fpr  future use
     //brake(sc) = sc : an.abs_envelope_rect(1) ^(0.1)  : hgroup("tabA", vgroup("[2]GR Leveler", hbargraph("brake",0,1)));
