@@ -27,11 +27,9 @@ process(x1, x2) = x1,x2 :
     input_meter :
     dc :
     ba.bypass2(checkbox("bypass all"), 
-    hgroup("MASTER_ME", vgroup("[2]LEVELER", ba.bypass2(checkbox("bypass leveler"),LEVELER(max(abs(x1),abs(x2)))))) : 
-    gain(-2) : 
+    hgroup("MASTER_ME", vgroup("[2]LEVELER", ba.bypass2(checkbox("bypass leveler"),LEVELER(max(abs(x1),abs(x2)))))) :     
     MB_MS_COMP :
     LIMITER :
-    gain(7)  :
     BRICKWALL ) :
     output_meter;
 
@@ -48,7 +46,7 @@ dc = fi.dcblocker,fi.dcblocker;
 
 
 // LEVELER
-LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) with{
+LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) : post_gain with{
     // leveler headroom gain
     //g = hgroup("MASTER_ME", vgroup("[1]HEADROOM",vslider("gain[unit:dB]",20,0,30,1))) : si.smoo :ba.db2linear;
     g = 20 : ba.db2linear;
@@ -82,6 +80,11 @@ LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) with{
     holdsamps = int(hold*ma.SR);
     };
 
+    //post_gain
+    post_gain = _ * g ,_ * g with {
+        g =  hslider("[5]post gain[unit:dB]", 0,-10,+10,0.5) : ba.db2linear;
+    };
+
     //metering
     meter_leveler = _ <: _, _+20 : attach(hbargraph("[1]gain[unit:dB]",-20,20));
 
@@ -93,7 +96,7 @@ LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) with{
 
 
 //MULTIBAND MS COMPRESSOR
-MB_MS_COMP = ms_enc : split3 : comp6 : join3 : ms_dec with{
+MB_MS_COMP = ms_enc : split3 : comp6 : join3 : ms_dec : post_gain with{
 
     // stereo to m/s encoder
     ms_enc = _*0.5,_*0.5 <: +, -;
@@ -105,18 +108,23 @@ MB_MS_COMP = ms_enc : split3 : comp6 : join3 : ms_dec with{
     join3 = (si.bus(3) :> _) , (si.bus(3) :> _);
 
     // 6ch FB compressor + mb_ms version
-    comp6 = co.FBcompressor_N_chan(0.6,-15,0.02,0.5,6,0,0.3,meter_comp6,6);
-    meter_comp6 =  _<:attach( ba.linear2db:  hgroup("MASTER_ME",vgroup("[3]MULTIBAND MID-SIDE COMPRESSOR", hbargraph("[unit:db]", -6,0))));
+    comp6 = co.FBcompressor_N_chan(0.6,-13,0.02,0.5,6,0,0.3,meter_comp6,6);
+    meter_comp6 =  _<:attach( ba.linear2db:  hgroup("MASTER_ME",vgroup("[3]MULTIBAND MID-SIDE COMPRESSOR", hbargraph("[1][unit:db]", -6,0))));
+
+    //post_gain
+    post_gain = _ * g ,_ * g with {
+        g =  hgroup("MASTER_ME",vgroup("[3]MULTIBAND MID-SIDE COMPRESSOR", hslider("[9]post gain[unit:dB]", 0,-10,+10,0.5))) : ba.db2linear;
+    };
 
 };
 
 
 
 // LIMITER
-LIMITER = limiter_lad_stereo(limiter_lad_lookahead, limiter_lad_ceil, limiter_lad_attack, limiter_lad_hold, limiter_lad_release) with{
+LIMITER = limiter_lad_stereo(limiter_lad_lookahead, limiter_lad_ceil, limiter_lad_attack, limiter_lad_hold, limiter_lad_release) : post_gain with{
     
     limiter_lad_lookahead = 0.01;
-    limiter_lad_ceil = -9 : ba.db2linear;
+    limiter_lad_ceil = -6 : ba.db2linear;
     limiter_lad_attack = 0.01;
     limiter_lad_hold = 0.05;
     limiter_lad_release = 0.2;
@@ -138,6 +146,11 @@ LIMITER = limiter_lad_stereo(limiter_lad_lookahead, limiter_lad_ceil, limiter_la
            maxN(2) = max;
            maxN(N) = max(maxN(N - 1));
       };
+
+    //post_gain
+    post_gain = _ * g ,_ * g with {
+        g =  hgroup("MASTER_ME",hgroup("[7]LIMITER", vslider("[9]post gain[unit:dB]", 0,-10,+10,0.5))) : ba.db2linear;
+    };
 
     // LIMITER metering
     meter_limiter_lad_N = _ <: attach(si.smoo : ba.linear2db : hgroup("MASTER_ME",hgroup("[7]LIMITER",vbargraph("[8][unit:dB]GR",-12,0))));
