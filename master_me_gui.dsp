@@ -12,7 +12,8 @@
  */
 /* some building blocks where taken from or inspired by Dario Sanfilippo <sanfilippo.dario at gmail dot com
  * some building blocks by Stéphane Letz
- * a lot of help came from the faust community, especially sletz, magnetophone and dario sanphilippo
+ * some building blocks by Julius Smith
+ * a lot of help came from the faust community, especially sletz, magnetophone, dario sanphilippo, julius smith
 */
 declare name      "master_me_gui";
 declare author    "Klaus Scheuermann";
@@ -25,12 +26,14 @@ import("stdfaust.lib");
 // main
 process(x1, x2) = x1,x2 : 
     input_meter :
+    LUFS_in_meter :
     dc :
     ba.bypass2(checkbox("bypass all"), 
     hgroup("MASTER_ME", vgroup("[2]LEVELER", ba.bypass2(checkbox("bypass leveler"),LEVELER(max(abs(x1),abs(x2)))))) :     
     MB_MS_COMP :
     LIMITER :
     BRICKWALL ) :
+    LUFS_out_meter:
     output_meter;
 
 
@@ -43,7 +46,12 @@ gain(x) = _ * (x :ba.db2linear) , _ * (x :ba.db2linear);
 // dc filter (stereo)
 dc = fi.dcblocker,fi.dcblocker;
 
-
+//k-filter by Julius Smith
+    highpass = fi.highpass(2, 40);
+    boostDB = 4;
+    boostFreqHz = 1430; // a little too high - they should give us this!
+    highshelf = fi.high_shelf(boostDB, boostFreqHz); // Looks very close, but 1 kHz gain has to be nailed
+    kfilter = highshelf : highpass;
 
 // LEVELER
 LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) : post_gain with{
@@ -52,7 +60,7 @@ LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) : post_gain with{
     g = 20 : ba.db2linear;
     
     // leveler calculation
-    calc(sc) = sc * 6 * g : fi.highpass(1,180) : (ma.tanh <: * : lp1p(tg) : sqrt) - 1 : abs : ba.linear2db *1.5 : meter_leveler : ba.db2linear 
+    calc(sc) = sc * 6 * g : kfilter : (ma.tanh <: * : lp1p(tg) : sqrt) - 1 : abs : ba.linear2db *1.5 : meter_leveler : ba.db2linear 
     with {
         t= hslider("[3]speed", 0.02,0.01,0.1,0.01) ;
         tg = gate(sc) * t : hbargraph("[2]speed + gate",0,0.1) ; 
@@ -79,6 +87,10 @@ LEVELER(sc, x1, x2) = x1 * g * calc(sc), x2 * g * calc(sc) : post_gain with{
     holdreset(x) = rawgatesig(x) < rawgatesig(x)'; // reset hold when raw gate falls
     holdsamps = int(hold*ma.SR);
     };
+
+
+    //old filter
+    old_filter = fi.highpass(1,180); 
 
     //post_gain
     post_gain = _ * g ,_ * g with {
@@ -199,6 +211,34 @@ output_meter = hgroup("MASTER_ME", hgroup("[9]OUTPUT",vmeter)), hgroup("MASTER_M
 vmeter(x)       = attach(x, envelop(x) : vbargraph("[unit:dB]", -70, 0));
 hmeter(x)       = attach(x, envelop(x) : hbargraph("[unit:dB]", -50, 0));
 
-envelop         = abs : max(ba.db2linear(-70)) : ba.linear2db : min(10)  : max ~ -(10.0/ma.SR);
+envelop         = abs : max(ba.db2linear(-70)) : ba.linear2db : min(10)  : max ~ -(40.0/ma.SR);
 
 
+// LUFS Meter
+// Power sum:
+Tg = 0.4; // spec calls for 75% overlap of successive rectangular windows - we're overlapping MUCH more (sliding window)
+//zi = an.ms_envelope_rect(Tg); // mean square: average power = energy/Tg = integral of squared signal / Tg
+
+//envelope via lp by dario
+lp1p(cf, x) = fi.pole(b, x * (1 - b)) with {
+    b = exp(-2 * ma.PI * cf / ma.SR);
+};
+
+zi_lp(x) = lp1p(1 / Tg, x * x);
+
+// Gain vector Gv = (GL,GR,GC,GLs,GRs):
+N = 5;
+Gv = (1, 1, 1, 1.41, 1.41); // left GL(-30deg), right GR (30), center GC(0), left surround GLs(-110), right surr. GRs(110)
+G(i) = *(ba.take(i+1,Gv));
+Lk(i) = kfilter : zi_lp : G(i); // one channel, before summing and before taking dB and offsetting
+LkDB(i) = Lk(i) : 10 * log10 : -(0.691); // Use this for a mono input signal
+
+// Five-channel surround input:
+Lk5 = par(i,5,Lk(i)) :> 10 * log10 : -(0.691);
+// stereo
+Lk2 = Lk(0),Lk(2) :> 10 * log10 : -(0.691);
+
+//process(x,y) = x,y <: (_,_), attach(x, (Lk2 : vbargraph("LUFS",-90,0))) : _,_,_ ;
+
+LUFS_in_meter(x,y) = x,y <: x, attach(y, (Lk2 : hgroup("MASTER_ME", hgroup("[0]INPUT",vbargraph("LUFS",-90,0))))) : _,_;
+LUFS_out_meter(x,y) = x,y <: x, attach(y, (Lk2 : hgroup("MASTER_ME", hgroup("[9]OUTPUT",vbargraph("LUFS",-90,0))))) : _,_;
