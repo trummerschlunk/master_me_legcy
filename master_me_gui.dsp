@@ -240,5 +240,5 @@ Lk2 = Lk(0),Lk(2) :> 10 * log10 : -(0.691);
 
 //process(x,y) = x,y <: (_,_), attach(x, (Lk2 : vbargraph("LUFS",-90,0))) : _,_,_ ;
 
-LUFS_in_meter(x,y) = x,y <: x, attach(y, (Lk2 : hgroup("MASTER_ME", hgroup("[0]INPUT",vbargraph("LUFS",-90,0))))) : _,_;
-LUFS_out_meter(x,y) = x,y <: x, attach(y, (Lk2 : hgroup("MASTER_ME", hgroup("[9]OUTPUT",vbargraph("LUFS",-90,0))))) : _,_;
+LUFS_in_meter(x,y) = x,y <: x, attach(y, (Lk2 : hgroup("MASTER_ME", hgroup("[0]INPUT",vbargraph("LUFS M",-90,0))))) : _,_;
+LUFS_out_meter(x,y) = x,y <: x, attach(y, (Lk2 : hgroup("MASTER_ME", hgroup("[9]OUTPUT",vbargraph("LUFS M",-90,0))))) : _,_;
