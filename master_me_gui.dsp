@@ -189,12 +189,13 @@ N = 5;
 Gv = (1, 1, 1, 1.41, 1.41); // left GL(-30deg), right GR (30), center GC(0), left surround GLs(-110), right surr. GRs(110)
 G(i) = *(ba.take(i+1,Gv));
 Lk(i) = kfilter : zi_lp : G(i); // one channel, before summing and before taking dB and offsetting
-LkDB(i) = Lk(i) : 10 * log10 : -(0.691); // Use this for a mono input signal
+LkDB(i) = Lk(i) : 10 * log10(max(ma.EPSILON)) : -(0.691); // Use this for a mono input signal
 
 // Five-channel surround input:
-Lk5 = par(i,5,Lk(i)) :> 10 * log10 : -(0.691);
+Lk5 = par(i,5,Lk(i)) :> 10 * log10(max(ma.EPSILON)) : -(0.691);
 // Two -channel stereo input:
-Lk2 = Lk(0),Lk(2) :> 10 * log10 : -(0.691);
+//Lk2 = Lk(0),Lk(2) :> 10 * log10 : -(0.691);
+Lk2 = Lk(0),Lk(2) :> 10 * log10(max(ma.EPSILON)) : -(0.691);
 
 LUFS_in_meter(x,y) = x,y <: x, attach(y, (Lk2 : hgroup("MASTER_ME", hgroup("[0]INPUT",vbargraph("LUFS S",-40,0))))) : _,_;
 LUFS_out_meter(x,y) = x,y <: x, attach(y, (Lk2 : hgroup("MASTER_ME", hgroup("[9]OUTPUT",vbargraph("LUFS S",-40,0))))) : _,_;
