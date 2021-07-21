@@ -62,7 +62,7 @@ highshelf = fi.high_shelf(boostDB, boostFreqHz); // Looks very close, but 1 kHz 
 kfilter = highshelf : highpass;
 
 // LEVELER2
-LEVELER2(l,r) = l * (difference(l,r) : limit(limit_neg,limit_pos) : hbargraph("[2]gain",-10,10) : ba.db2linear), r * (difference(l,r) : ba.db2linear) with{
+LEVELER2(l,r) = l * (difference(l,r) : limit(limit_neg,limit_pos) : hbargraph("[2]gain",-10,10) : ba.db2linear), r * (difference(l,r) : limit(limit_neg,limit_pos) : ba.db2linear) with{
     
     target = hslider("[3]target loudness LUFS[unit:dB]", init_leveler_target,-50,0,1);
     difference(l,r) = (target - (Lk2(l,r)  :  hbargraph("[1]Input LUFS short-term",-40,0))) : lp1p(leveler_speed_gated);
