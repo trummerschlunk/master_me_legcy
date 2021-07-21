@@ -13,7 +13,7 @@
 /* some building blocks where taken from or inspired by Dario Sanfilippo <sanfilippo.dario at gmail dot com
  * some building blocks by Stéphane Letz
  * some building blocks by Julius Smith
- * a lot of help came from the faust community, especially sletz, magnetophone, dario sanphilippo, julius smith
+ * a lot of help came from the faust community, especially sletz, magnetophone, dario sanphilippo, julius smith, juan carlos blancas
 */
 declare name      "master_me_gui";
 declare author    "Klaus Scheuermann";
@@ -28,6 +28,10 @@ init_leveler_maxcut = 6;
 init_leveler_gatethreshold = -40;
 init_leveler_speed = .01;
 
+init_mbmscomp_thresh = -11;
+
+init_limiter_lad_ceil = -3;
+
 // main
 process(x1, x2) = x1,x2 : 
     input_meter :
@@ -39,9 +43,9 @@ process(x1, x2) = x1,x2 :
     MB_MS_COMP :
     LIMITER :
     BRICKWALL ) :
-    LUFS_out_meter:
-    output_meter;
-
+    LUFS_out_meter :
+    output_meter
+    ;
 
 
 // simple gain function (stereo)
@@ -86,7 +90,7 @@ MB_MS_COMP = ms_enc : split3 : comp6 : join3 : ms_dec : post_gain with{
     join3 = (si.bus(3) :> _) , (si.bus(3) :> _);
 
     // 6ch FB compressor + mb_ms version
-    comp6 = co.FBcompressor_N_chan(0.6,-12,0.02,0.5,6,0,0.3,meter_comp6,6);
+    comp6 = co.FBcompressor_N_chan(0.6,init_mbmscomp_thresh,0.02,0.5,6,0,0.3,meter_comp6,6);
     meter_comp6 =  _<:attach( ba.linear2db:  hgroup("MASTER_ME",vgroup("[3]MULTIBAND MID-SIDE COMPRESSOR", hbargraph("[1][unit:db]", -6,0))));
 
     //post_gain
@@ -97,10 +101,10 @@ MB_MS_COMP = ms_enc : split3 : comp6 : join3 : ms_dec : post_gain with{
 };
 
 // LIMITER
-LIMITER = limiter_lad_stereo(limiter_lad_lookahead, limiter_lad_ceil, limiter_lad_attack, limiter_lad_hold, limiter_lad_release) : post_gain with{
+LIMITER = limiter_lad_stereo(limiter_lad_lookahead, init_limiter_lad_ceil : ba.db2linear, limiter_lad_attack, limiter_lad_hold, limiter_lad_release) : post_gain with{
     
     limiter_lad_lookahead = 0.01;
-    limiter_lad_ceil = -3 : ba.db2linear;
+    // limiter_lad_ceil = -3; (moved to init section and renamed to init_limiter_lad_ceil)
     limiter_lad_attack = 0.01;
     limiter_lad_hold = 0.05;
     limiter_lad_release = 0.2;
@@ -129,7 +133,7 @@ LIMITER = limiter_lad_stereo(limiter_lad_lookahead, limiter_lad_ceil, limiter_la
     };
 
     // LIMITER metering
-    meter_limiter_lad_N = _ <: attach(si.smoo : ba.linear2db : hgroup("MASTER_ME",hgroup("[7]LIMITER",vbargraph("[8][unit:dB]GR",-12,0))));
+    meter_limiter_lad_N = _ <: attach(ba.linear2db : hgroup("MASTER_ME",hgroup("[7]LIMITER",vbargraph("[8][unit:dB]GR",-12,0))));
 };
 
 BRICKWALL = limiter_lad_stereo(limiter_lad_lookahead, limiter_lad_ceil, limiter_lad_attack, limiter_lad_hold, limiter_lad_release) with{
@@ -161,7 +165,7 @@ BRICKWALL = limiter_lad_stereo(limiter_lad_lookahead, limiter_lad_ceil, limiter_
       };
 
     // BRICKWALL metering
-    meter_limiter_lad_N = _ <: attach(si.smoo : ba.linear2db : hgroup("MASTER_ME",hgroup("[8]BRICKWALL",vbargraph("[8][unit:dB]GR",-12,0))));
+    meter_limiter_lad_N = _ <: attach(ba.linear2db : hgroup("MASTER_ME",hgroup("[8]BRICKWALL",vbargraph("[8][unit:dB]GR",-12,0))));
 };
 
 // METERING
@@ -194,7 +198,6 @@ LkDB(i) = Lk(i) : 10 * log10(max(ma.EPSILON)) : -(0.691); // Use this for a mono
 // Five-channel surround input:
 Lk5 = par(i,5,Lk(i)) :> 10 * log10(max(ma.EPSILON)) : -(0.691);
 // Two -channel stereo input:
-//Lk2 = Lk(0),Lk(2) :> 10 * log10 : -(0.691);
 Lk2 = Lk(0),Lk(2) :> 10 * log10(max(ma.EPSILON)) : -(0.691);
 
 LUFS_in_meter(x,y) = x,y <: x, attach(y, (Lk2 : hgroup("MASTER_ME", hgroup("[0]INPUT",vbargraph("LUFS S",-40,0))))) : _,_;
