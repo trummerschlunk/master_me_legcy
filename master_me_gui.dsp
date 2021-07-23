@@ -22,6 +22,8 @@ declare copyright "(C) 2021 Klaus Scheuermann";
 import("stdfaust.lib");
 
 // init values
+init_noisegate_threshold = -60;
+
 init_leveler_target = -16;
 init_leveler_maxboost = 6;
 init_leveler_maxcut = 6;
@@ -37,9 +39,10 @@ process(x1, x2) = x1,x2 :
     input_meter :
     LUFS_in_meter :
     dc :
+    hgroup("MASTER_ME", vgroup("[1.5]NOISEGATE",NOISEGATE)):
     ba.bypass2(checkbox("bypass all"), 
     // hgroup("MASTER_ME", vgroup("[2]LEVELER", ba.bypass2(checkbox("bypass leveler"),LEVELER(max(abs(x1),abs(x2)))))) :
-    hgroup("MASTER_ME", vgroup("[2]LEVELER2",LEVELER2)) :
+    hgroup("MASTER_ME", vgroup("[2]LEVELER",LEVELER)) :
     MB_MS_COMP :
     LIMITER :
     BRICKWALL ) :
@@ -54,6 +57,14 @@ gain(x) = _ * (x :ba.db2linear) , _ * (x :ba.db2linear);
 // dc filter (stereo)
 dc = fi.dcblocker,fi.dcblocker;
 
+// Noise Gate
+NOISEGATE = ef.gate_stereo(noisegate_thresh,noisegate_attack,noisegate_hold,noisegate_release) with {
+    noisegate_thresh = vslider("threshold",init_noisegate_threshold, -95, 0, 1);
+    noisegate_attack = 0.01;
+    noisegate_hold = 1;
+    noisegate_release = 2;
+};
+
 //k-filter by Julius Smith
 highpass = fi.highpass(2, 40);
 boostDB = 4;
@@ -62,18 +73,18 @@ highshelf = fi.high_shelf(boostDB, boostFreqHz); // Looks very close, but 1 kHz 
 kfilter = highshelf : highpass;
 
 // LEVELER2
-LEVELER2(l,r) = l * (difference(l,r) : limit(limit_neg,limit_pos) : hbargraph("[2]gain",-10,10) : ba.db2linear), r * (difference(l,r) : limit(limit_neg,limit_pos) : ba.db2linear) with{
+LEVELER(l,r) = l * (difference(l,r) : limit(limit_neg,limit_pos) : hbargraph("[2]gain",-10,10) : ba.db2linear), r * (difference(l,r) : ba.db2linear) with{
     
-    target = hslider("[3]target loudness LUFS[unit:dB]", init_leveler_target,-50,0,1);
-    difference(l,r) = (target - (Lk2(l,r)  :  hbargraph("[1]Input LUFS short-term",-40,0))) : lp1p(leveler_speed_gated);
+    target = hslider("[3]target loudness (LUFS)[unit:dB]", init_leveler_target,-50,0,1);
+    difference(l,r) = (target - (Lk2(l,r)  :  hbargraph("[1]input (LUFS S)",-40,0))) : lp1p(leveler_speed_gated);
 
-    limit_pos = hslider("[4]maximum boost", init_leveler_maxboost, 0, 10, 1);
-    limit_neg = hslider("[5]maximum cut", init_leveler_maxcut, 0, 10, 1) : ma.neg;
+    limit_pos = hslider("[4]maximum boost (db)", init_leveler_maxboost, 0, 10, 1);
+    limit_neg = hslider("[5]maximum cut (db)", init_leveler_maxcut, 0, 10, 1) : ma.neg;
     limit(lo,hi) = min(hi) : max(lo); 
 
     leveler_speed = hslider("[7]leveler speed", init_leveler_speed, .01, 0.2, .01);
-    leveler_speed_gated = ba.if(Lk2(l,r) <= leveler_gate_thresh, 0, leveler_speed) : hbargraph("[6]leveler speed with gate",0,0.2) ;
-    leveler_gate_thresh = hslider("[8]gate threshold LUFS[unit:dB]", init_leveler_gatethreshold,-90,0,1);
+    leveler_speed_gated = ba.if(Lk2(l,r) <= leveler_gate_thresh, 0, leveler_speed) : hbargraph("[6]gated leveler speed",0,0.2) ;
+    leveler_gate_thresh = hslider("[8]leveler gate threshold (LUFS)[unit:dB]", init_leveler_gatethreshold,-90,0,1);
     
 };
 
