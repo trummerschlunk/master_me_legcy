@@ -11,7 +11,7 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  */
-/* some building blocks where taken from or inspired by Dario Sanfilippo <sanfilippo.dario at gmail dot com
+/* some building blocks where taken from or inspired by Dario Sanfilippo <sanfilippo.dario at gmail dot com>
  * some building blocks by Stéphane Letz
  * some building blocks by Julius Smith
  * some building blocks by Yann Orlarey
@@ -62,10 +62,10 @@ process =
 ;
 
 
-// dc filter (N-CHannel)
+// DC FILTER
 dc_filter(N) = par(i,N,fi.dcblocker);
 
-// Noise Gate (N-channel)
+// NOISE GATE
 noisegate(N) = gate_any(N,noisegate_thresh,noisegate_attack,noisegate_hold,noisegate_release) with {
     noisegate_thresh = vslider("[0]threshold",init_noisegate_threshold, -95, 0, 1);
     noisegate_attack = 0.01;
@@ -123,7 +123,7 @@ leveler(N) = B <: B, (B :> _ <: _,_ : calc : _ <: B) : ro.interleave(N,2) : par(
     
 };
 
-//MULTIBAND MS COMPRESSOR
+// MULTIBAND MS COMPRESSOR
 mbmscomp(N) = par(i,N /2, ms_enc : split3) : comp_Nch(N) : par(i,N /2, join3 : ms_dec) : post_gain with{
 
     // stereo to m/s encoder
@@ -131,11 +131,14 @@ mbmscomp(N) = par(i,N /2, ms_enc : split3) : comp_Nch(N) : par(i,N /2, join3 : m
     // m/s to stereo decoder
     ms_dec = _,_ <: +, -;
     // 3-band splitter stereo
-    split3 = _,_ : fi.filterbank(3, (250,2500)), fi.filterbank(3, (250,2500)) : _,_,_,_,_,_;
+    split3 = _,_ : par(i,2,fi.filterbank(3, (xo1,xo2))) : _,_,_,_,_,_ with {
+        xo1 = 250;
+        xo2 = 2500;
+    };
     // 3-band joiner stereo
     join3 = (si.bus(3) :> _) , (si.bus(3) :> _);
 
-    // 6ch FB compressor + mb_ms version
+    // Nch FB compressor
     comp_Nch(N) = co.FBcompressor_N_chan(0.6,init_mbmscomp_thresh,0.02,0.5,6,0,0.3,meter_comp,N *3);
     meter_comp =  _<:attach( ba.linear2db :  hbargraph("[1][unit:db]", -6,0));
 
@@ -154,7 +157,7 @@ limiter(N) = limiter_lad_N(N,limiter_lad_lookahead, init_limiter_lad_ceil : ba.d
     limiter_lad_hold = 0.05;
     limiter_lad_release = 0.2;
 
-    // LIMITER LAD N
+    // lookahead limiter (N-channel)
     limiter_lad_N(N, LD, ceiling, attack, hold, release) = 
         si.bus(N) <: par(i, N, @ (LD * ma.SR)), 
             (scaling <: si.bus(N)) : ro.interleave(N, 2) : par(i, N, *)
@@ -168,12 +171,12 @@ limiter(N) = limiter_lad_N(N,limiter_lad_lookahead, init_limiter_lad_ceil : ba.d
             maxN(N) = max(maxN(N - 1));
         };
 
-    //post_gain
+    // post_gain
     post_gain = par(i,Nch,_ * g) with {
         g =  vslider("[9]post gain[unit:dB]", 0,-10,+10,0.5) : ba.db2linear;
     };
 
-    // LIMITER metering
+    // metering
     meter_limiter_lad_N = _ <: attach(ba.linear2db : vbargraph("[8][unit:dB]GR",-12,0));
 };
 
@@ -189,10 +192,8 @@ brickwall(N) = limiter_lad_N(N, limiter_lad_lookahead, limiter_lad_ceil, limiter
     limiter_lad_attack = .01 / twopi;
     limiter_lad_hold = .1;
     limiter_lad_release = 1 / twopi;
-
-    //limiter_lad_Nch(LD) = limiter_lad_N(N, LD);
     
-    // LIMITER LAD N
+    // lookahead limiter (N-channel)
     limiter_lad_N(N, LD, ceiling, attack, hold, release) = 
         si.bus(N) <: par(i, N, @ (LD * ma.SR)), 
             (scaling <: si.bus(N)) : ro.interleave(N, 2) : par(i, N, *)
@@ -206,7 +207,7 @@ brickwall(N) = limiter_lad_N(N, limiter_lad_lookahead, limiter_lad_ceil, limiter
             maxN(N) = max(maxN(N - 1));
         };
 
-    // BRICKWALL metering
+    // metering
     meter_limiter_lad_N = _ <: attach(ba.linear2db : vbargraph("[8][unit:dB]GR",-12,0));
 };
 
@@ -217,7 +218,7 @@ peak_meter(N) = par(i, N, (_ <: attach(_, envelop : vbargraph("[unit:dB]CH %i", 
 };
 
 
-// LUFS Metering (without channel weighting)
+// LUFS metering (without channel weighting)
 Tg = 3; // 3 second window for 'short-term' measurement
 // zi = an.ms_envelope_rect(Tg); // mean square: average power = energy/Tg = integral of squared signal / Tg
 
@@ -234,12 +235,13 @@ lp1p(cf, x) = fi.pole(b, x * (1 - b)) with {
 };
 zi_lp(x) = lp1p(1 / Tg, x * x);
 
-// N-channel input:
-LkN = par(i,Nch,kfilter : zi_lp) :> 10 * log10(max(ma.EPSILON)) : -(0.691);
-
+// one channel
 Lk = kfilter: zi_lp : 10 * log10(max(ma.EPSILON)) : -(0.691);
 
-// N-Channel by Yann Orlarey
+// N-channel
+LkN = par(i,Nch,kfilter : zi_lp) :> 10 * log10(max(ma.EPSILON)) : -(0.691);
+
+// N-channel by Yann Orlarey
 lufs_any(N) = B <: B, (B :> Lk : vbargraph("LUFS S",-40,0)) : si.bus(N-1), attach(_,_)
     with { 
         B = si.bus(N); 
