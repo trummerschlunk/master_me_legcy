@@ -51,8 +51,12 @@ process =
     //par(i,2,os.osc(hslider("freq",200,1,22000,1))):
 
     hgroup("MASTER_ME", hgroup("[0]INPUT",peak_meter(Nch))) :
-    hgroup("MASTER_ME", hgroup("[0]INPUT",lufs_any(Nch))) :
     
+    hgroup("MASTER_ME", hgroup("[1]STEREO CORRECT",correlate_meter)) :
+    hgroup("MASTER_ME", hgroup("[1]STEREO CORRECT",correlate_correct_bp)) :
+    
+    // hgroup("MASTER_ME", hgroup("[0]INPUT",lufs_any(Nch))) :
+
     dc_filter(Nch) :
     // hgroup("MASTER_ME", vgroup("[1.5]NOISEGATE",noisegate(Nch))):
     hgroup("MASTER_ME", vgroup("[2]LEVELER",leveler(Nch))) :
@@ -373,5 +377,51 @@ lufs_any(N) = B <: B, (B :> Lk : vbargraph("LUFS S",-40,0)) : si.bus(N-1), attac
         
     };
 
-LUFS_in_meter(x,y) = x,y <: x, attach(y, (LkN : hgroup("MASTER_ME", hgroup("[0]INPUT",vbargraph("LUFS S",-40,0))))) : _,_;
-LUFS_out_meter(x,y) = x,y <: x, attach(y, (LkN : hgroup("MASTER_ME", hgroup("[9]OUTPUT",vbargraph("LUFS S",-40,0))))) : _,_;
+
+// correlation meter
+correlate_meter(x,y) = x,y <: x , attach(y, (corr(t) : vbargraph("correlation",-1,1))) : _,_ with {
+    t = .1; // averaging period in seconds
+    
+    avg(t, x) = fi.pole(p, (1 - p) * x) // 1-pole lowpass as average
+        with {
+            p = exp((((-2.0 * ma.PI) / t) / ma.SR));
+        };
+    var(t, x) = avg(t, (x - avg(t, x)) ^ 2); // variance
+    sd(t, x) = sqrt(var(t, x)); // standard deviation
+    cov(t, x1, x2) = avg(t, (x1 - avg(t, x1)) * (x2 - avg(t, x2))); // covariance
+    corr(t, x1, x2) = cov(t, x1, x2) / max(ma.EPSILON, (sd(t, x1) * sd(t, x2))); // correlation
+};
+
+// stereo correction based on correlation
+correlate_correct(l,r) = out_pos1, out_neg1, out_0, out_pos, out_neg :> _,_ with {
+    
+    t = .2; // averaging period in seconds
+    
+    avg(t, x) = fi.pole(p, (1 - p) * x) // 1-pole lowpass as average
+        with {
+            p = exp((((-2.0 * ma.PI) / t) / ma.SR));
+        };
+    var(t, x) = avg(t, (x - avg(t, x)) ^ 2); // variance
+    sd(t, x) = sqrt(var(t, x)); // standard deviation
+    cov(t, x1, x2) = avg(t, (x1 - avg(t, x1)) * (x2 - avg(t, x2))); // covariance
+    corr(t, x1, x2) = cov(t, x1, x2) / max(ma.EPSILON, (sd(t, x1) * sd(t, x2))); // correlation
+    
+    
+    th =.0001;
+    corr_pos1 = avg(t, (corr(t,l,r) > (1-th))) : smoothing;
+    corr_neg1 = avg(t, corr(t,l,r) < (-1+th)) : smoothing;
+    corr_0 = avg(t, ((corr(t,l,r) < th) & (corr(t,l,r) > (0-th)))) : smoothing;
+    corr_pos = avg(t, ((corr(t,l,r) > (0+th)) & (corr(t,l,r) < (1-th)))) : smoothing;
+    corr_neg = avg(t, ((corr(t,l,r) > (-1+th)) & (corr(t,l,r) < (0-th)))) : smoothing;
+
+    smoothing = si.smooth(0.005);
+
+    out_pos1 = ((l * corr_pos1 + r * corr_pos1) /2) , ((l * corr_pos1 + r * corr_pos1) /2);
+    out_neg1 = ((l * corr_neg1 + (-r) * corr_neg1) /2) , ((l * corr_neg1 + (-r) * corr_neg1) /2);
+    out_0 = (l * corr_0 + r * corr_0) , (l * corr_0 + r * corr_0);
+    out_pos = l * corr_pos , r * corr_pos;
+    out_neg = l * corr_neg , (0-(r * corr_neg));
+};
+
+// stereo correction bypass checkbox
+correlate_correct_bp = ba.bypass2(checkbox("bypass"), correlate_correct);
