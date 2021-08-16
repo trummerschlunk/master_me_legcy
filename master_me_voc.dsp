@@ -47,8 +47,13 @@ init_brickwall_ceiling = -0.7;
 
 // main
 process = 
+    
+    ba.bypass2(checkbox("bypass all"),
+
     si.bus(Nch) : 
     //par(i,2,os.osc(hslider("freq",200,1,22000,1))):
+
+    
 
     hgroup("MASTER_ME", hgroup("[0]INPUT",peak_meter(Nch))) :
     
@@ -69,7 +74,9 @@ process =
     hgroup("MASTER_ME", hgroup("[9]OUTPUT",lufs_any(Nch))) :
     hgroup("MASTER_ME", hgroup("[9]OUTPUT",peak_meter(Nch))) :
     
+    
     si.bus(Nch)
+    ) // bypass end
 ;
 
 
