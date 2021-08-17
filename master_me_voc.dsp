@@ -61,7 +61,7 @@ process =
 
     dc_filter(Nch) :
 
-    // hgroup("MASTER_ME", vgroup("[1.5]NOISEGATE",noisegate(Nch))):
+    // hgroup("MASTER_ME", hgroup("[1.5]NOISEGATE",noisegate(Nch))):
     hgroup("MASTER_ME", hgroup("[2]LEVELER",leveler(Nch))) :
     // hgroup("MASTER_ME", vgroup("[3]MULTIBAND MID-SIDE COMPRESSOR", mbmscomp(Nch))) :
     // hgroup("MASTER_ME", vgroup("[3]MULTIBAND COMPRESSOR", mbcomp(Nch))) :
@@ -113,17 +113,17 @@ leveler(N) = B <: B, (B :> _ <: _,_ : calc : _ <: B) : ro.interleave(N,2) : par(
 
     B = si.bus(N);
     
-    calc(mono,sc) = (mono : Lk : vbargraph("[1]input (LUFS S)",-40,0) : (target - _) : lp1p(leveler_speed_gated(sc)) : limit(limit_neg,limit_pos) : vbargraph("[2]gain",-50,50) : ba.db2linear) , sc : _,!;
+    calc(mono,sc) = (mono : Lk : vbargraph("[1]in LUFS S",-40,0) : (target - _) : lp1p(leveler_speed_gated(sc)) : limit(limit_neg,limit_pos) : vbargraph("[2]gain",-50,50) : ba.db2linear) , sc : _,!;
 
-    target = vslider("[3]target loudness (LUFS)[unit:dB]", init_leveler_target,-50,0,1);
+    target = vslider("[3]target LUFS[unit:dB]", init_leveler_target,-50,0,1);
     
-    limit_pos = vslider("[4]maximum boost (db)", init_leveler_maxboost, 0, 50, 1);
-    limit_neg = vslider("[5]maximum cut (db)", init_leveler_maxcut, 0, 50, 1) : ma.neg;
+    limit_pos = vslider("[5]max boost", init_leveler_maxboost, 0, 50, 1);
+    limit_neg = vslider("[6]max cut", init_leveler_maxcut, 0, 50, 1) : ma.neg;
     limit(lo,hi) = min(hi) : max(lo); 
 
-    leveler_speed = vslider("[7]leveler speed", init_leveler_speed, .005, 0.1, .005);
-    leveler_speed_gated(sc) = (gate_gain_mono(leveler_gate_thresh,0.1,0,0.1,abs(sc)) <: attach(_, (1-_) : vbargraph("[6]leveler gate",0,1))) : _ * leveler_speed;
-    leveler_gate_thresh = vslider("[8]leveler gate threshold (db)[unit:dB]", init_leveler_gatethreshold,-90,0,1);
+    leveler_speed = vslider("[4]speed", init_leveler_speed, .005, 0.1, .005);
+    leveler_speed_gated(sc) = (gate_gain_mono(leveler_gate_thresh,0.1,0,0.1,abs(sc)) <: attach(_, (1-_) : vbargraph("[7]leveler gate",0,1))) : _ * leveler_speed;
+    leveler_gate_thresh = vslider("[8]lev gate thresh[unit:dB]", init_leveler_gatethreshold,-90,0,1);
 
     // from library:
     gate_gain_mono(thresh,att,hold,rel,x) = x : extendedrawgate : an.amp_follower_ar(att,rel) with {
@@ -191,49 +191,7 @@ mbcomp(N) = par(i,N /2, split3) : comp_Nch(N) : par(i,N /2, join3 ) : post_gain 
 
 };
 
-// 4 BAND STEREO COMPRESSOR
-comp4st = _,_ : split4 : route(8,8,    1,1,  2,3,  3,5,  4,7,  5,2,  6,4,  7,6,  8,8) : comp_hi,comp_himid,comp_lomid,comp_lo :> _,_ : makeup(Nch) with {
-    
-    split4 = _,_ : par(i,2,fi.filterbank(3, (xo1,xo2,xo3)))  : si.bus(8)  with {
-        xo1 = 200;
-        xo2 = 1000;
-        xo3 = 5000;
-    };
 
-    join4 = (si.bus(4) :> _) , (si.bus(4) :> _);
-
-    comp_strength = 0.6;
-    comp_att = 0.02;
-    comp_rel = 0.5;
-    comp_knee = 6;
-    comp_prepost = 0;
-
-    comp_thresh = hslider("[1]threshold (db)",init_comp_thresh,-60,0,1);
-    comp_thresh_mult = hslider("[2]threshold band multiplier",init_comp_thresh_mult,1,2,0.1);
-
-    comp_lo    = _,_ : co.FBcompressor_N_chan(comp_strength, comp_thresh, comp_att, comp_rel, comp_knee, comp_prepost, 1, meter_comp,2) with {
-        meter_comp =  _<:attach( ba.linear2db :  hbargraph("[8]LO[unit:db]", -6,0));
-    };
-    comp_lomid = _,_ : co.FBcompressor_N_chan(comp_strength, comp_thresh * (comp_thresh_mult), comp_att, comp_rel, comp_knee, comp_prepost, 1, meter_comp,2) with {
-        meter_comp =  _<:attach( ba.linear2db :  hbargraph("[7]LO-MID[unit:db]", -6,0));
-    };
-    comp_himid = _,_ : co.FBcompressor_N_chan(comp_strength, comp_thresh * (comp_thresh_mult), comp_att, comp_rel, comp_knee, comp_prepost, 1, meter_comp,2) with {
-        meter_comp =  _<:attach( ba.linear2db :  hbargraph("[6]HI-MID[unit:db]", -6,0));
-    };
-    comp_hi    = _,_ : co.FBcompressor_N_chan(comp_strength, comp_thresh * comp_thresh_mult, comp_att, comp_rel, comp_knee, comp_prepost, 1, meter_comp,2) with {
-        meter_comp =  _<:attach( ba.linear2db :  hbargraph("[5]HI[unit:db]", -6,0));
-    };
-
-
-    //post_gain
-    makeup(n) = par(i,n,_ * g) with {
-        g =  hslider("[9]makeup[unit:dB]", 0,-10,+10,0.5) : ba.db2linear;
-    };
-
-    
-
-    meter_comp =  _<:attach( ba.linear2db :  hbargraph("[1][unit:db]", -6,0));
-};
 
 // 5 BAND STEREO COMPRESSOR
 comp5st = _,_ : split5 : route(10,10,    1,1,  2,3,  3,5,  4,7,  5,9,  6,2,  7,4,  8,6,  9,8,  10,10) : comp_hi,comp_himid,comp_mid,comp_lomid,comp_lo :> _,_ : makeup(Nch) with {
