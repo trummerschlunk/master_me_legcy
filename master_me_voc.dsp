@@ -51,10 +51,7 @@ process =
     ba.bypass2(checkbox("bypass all"),
 
     si.bus(Nch) : 
-    //par(i,2,os.osc(hslider("freq",200,1,22000,1))):
-
-    
-
+   
     hgroup("MASTER_ME", hgroup("[0]INPUT",peak_meter(Nch))) :
     
     hgroup("MASTER_ME", hgroup("[1]STEREO CORRECT",correlate_meter)) :
@@ -63,6 +60,7 @@ process =
     // hgroup("MASTER_ME", hgroup("[0]INPUT",lufs_any(Nch))) :
 
     dc_filter(Nch) :
+
     // hgroup("MASTER_ME", vgroup("[1.5]NOISEGATE",noisegate(Nch))):
     hgroup("MASTER_ME", vgroup("[2]LEVELER",leveler(Nch))) :
     // hgroup("MASTER_ME", vgroup("[3]MULTIBAND MID-SIDE COMPRESSOR", mbmscomp(Nch))) :
@@ -237,7 +235,7 @@ comp4st = _,_ : split4 : route(8,8,    1,1,  2,3,  3,5,  4,7,  5,2,  6,4,  7,6, 
     meter_comp =  _<:attach( ba.linear2db :  hbargraph("[1][unit:db]", -6,0));
 };
 
-// 4 BAND STEREO COMPRESSOR
+// 5 BAND STEREO COMPRESSOR
 comp5st = _,_ : split5 : route(10,10,    1,1,  2,3,  3,5,  4,7,  5,9,  6,2,  7,4,  8,6,  9,8,  10,10) : comp_hi,comp_himid,comp_mid,comp_lomid,comp_lo :> _,_ : makeup(Nch) with {
     
     split5 = _,_ : par(i,2,fi.filterbank(3, (xo1,xo2,xo3,xo4)))  : si.bus(10)  with {
