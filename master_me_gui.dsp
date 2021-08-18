@@ -32,7 +32,7 @@ init_noisegate_threshold = -70;
 init_leveler_target = -18;
 init_leveler_maxboost = 3;
 init_leveler_maxcut = 3;
-init_leveler_gatethreshold = -36;
+init_leveler_gatethreshold = -45;
 init_leveler_speed = .005;
 
 init_mbmscomp_thresh = -10;
@@ -46,12 +46,12 @@ process =
     si.bus(Nch) : 
     
     hgroup("MASTER_ME", hgroup("[0]INPUT",peak_meter(Nch))) :
-    hgroup("MASTER_ME", hgroup("[0]INPUT",lufs_any(Nch))) :
+    // hgroup("MASTER_ME", hgroup("[0]INPUT",lufs_any(Nch))) :
     
     dc_filter(Nch) :
-    hgroup("MASTER_ME", vgroup("[1.5]NOISEGATE",noisegate(Nch))):
-    hgroup("MASTER_ME", vgroup("[2]LEVELER",leveler(Nch))) :
-    hgroup("MASTER_ME", vgroup("[3]MULTIBAND MID-SIDE COMPRESSOR", mbmscomp(Nch))) :
+    hgroup("MASTER_ME", hgroup("[1.5]NOISEGATE",noisegate(Nch))):
+    hgroup("MASTER_ME", hgroup("[2]LEVELER",leveler(Nch))) :
+    hgroup("MASTER_ME", hgroup("[3]MULTIBAND MID-SIDE COMPRESSOR", mbmscomp(Nch))) :
     hgroup("MASTER_ME", hgroup("[7]LIMITER", limiter(Nch))) :
     hgroup("MASTER_ME", hgroup("[8]BRICKWALL",brickwall(Nch))) :
     
@@ -72,7 +72,7 @@ noisegate(N) = gate_any(N,noisegate_thresh,noisegate_attack,noisegate_hold,noise
     noisegate_hold = 1;
     noisegate_release = 2;
 
-    gate_any(N,thresh,att,hold,rel) = B <: B, (B :> ggm : vbargraph("[2]gate level",0,1) <: B) : ro.interleave(N,2) : par(i,N,*) 
+    gate_any(N,thresh,att,hold,rel) = B <: B, (B :> ggm <: attach(_,(1-_) : vbargraph("[2]gate level",0,1)) <: B) : ro.interleave(N,2) : par(i,N,*) 
     with { 
         B = si.bus(N); 
         ggm = gate_gain_mono(thresh,att,hold,rel);
@@ -97,17 +97,17 @@ leveler(N) = B <: B, (B :> _ <: _,_ : calc : _ <: B) : ro.interleave(N,2) : par(
 
     B = si.bus(N);
     
-    calc(mono,sc) = (mono : Lk : hbargraph("[1]input (LUFS S)",-40,0) : (target - _) : lp1p(leveler_speed_gated(sc)) : limit(limit_neg,limit_pos) : hbargraph("[2]gain",-10,10) : ba.db2linear) , sc : _,!;
+    calc(mono,sc) = (mono : Lk : vbargraph("[1]in LUFS S",-40,0) : (target - _) : lp1p(leveler_speed_gated(sc)) : limit(limit_neg,limit_pos) : vbargraph("[2]gain",-50,50) : ba.db2linear) , sc : _,!;
 
-    target = hslider("[3]target loudness (LUFS)[unit:dB]", init_leveler_target,-50,0,1);
+    target = vslider("[3]target LUFS[unit:dB]", init_leveler_target,-50,0,1);
     
-    limit_pos = hslider("[4]maximum boost (db)", init_leveler_maxboost, 0, 10, 1);
-    limit_neg = hslider("[5]maximum cut (db)", init_leveler_maxcut, 0, 10, 1) : ma.neg;
+    limit_pos = vslider("[5]max boost", init_leveler_maxboost, 0, 50, 1);
+    limit_neg = vslider("[6]max cut", init_leveler_maxcut, 0, 50, 1) : ma.neg;
     limit(lo,hi) = min(hi) : max(lo); 
 
-    leveler_speed = hslider("[7]leveler speed", init_leveler_speed, .005, 0.1, .005);
-    leveler_speed_gated(sc) = (gate_gain_mono(leveler_gate_thresh,0.1,0,0.1,abs(sc)) : hbargraph("[6]leveler gate",0,0.2)) * leveler_speed;
-    leveler_gate_thresh = hslider("[8]leveler gate threshold (db)[unit:dB]", init_leveler_gatethreshold,-90,0,1);
+    leveler_speed = vslider("[4]speed", init_leveler_speed, .005, 0.1, .005);
+    leveler_speed_gated(sc) = (gate_gain_mono(leveler_gate_thresh,0.1,0,0.1,abs(sc)) <: attach(_, (1-_) : vbargraph("[7]leveler gate",0,1))) : _ * leveler_speed;
+    leveler_gate_thresh = vslider("[8]lev gate thresh[unit:dB]", init_leveler_gatethreshold,-90,0,1);
 
     // from library:
     gate_gain_mono(thresh,att,hold,rel,x) = x : extendedrawgate : an.amp_follower_ar(att,rel) with {
@@ -126,6 +126,8 @@ leveler(N) = B <: B, (B :> _ <: _,_ : calc : _ <: B) : ro.interleave(N,2) : par(
 // MULTIBAND MS COMPRESSOR
 mbmscomp(N) = par(i,N /2, ms_enc : split3) : comp_Nch(N) : par(i,N /2, join3 : ms_dec) : post_gain with{
 
+    mbmscomp_thresh = vslider("[1]threshold",init_mbmscomp_thresh,-60,0,1);
+
     // stereo to m/s encoder
     ms_enc = _*0.5,_*0.5 <: +, -;
     // m/s to stereo decoder
@@ -139,12 +141,12 @@ mbmscomp(N) = par(i,N /2, ms_enc : split3) : comp_Nch(N) : par(i,N /2, join3 : m
     join3 = (si.bus(3) :> _) , (si.bus(3) :> _);
 
     // Nch FB compressor
-    comp_Nch(N) = co.FBcompressor_N_chan(0.6,init_mbmscomp_thresh,0.02,0.5,6,0,0.3,meter_comp,N *3);
-    meter_comp =  _<:attach( ba.linear2db :  hbargraph("[1][unit:db]", -6,0));
+    comp_Nch(N) = co.FBcompressor_N_chan(0.6,mbmscomp_thresh,0.02,0.5,6,0,0.3,meter_comp,N *3);
+    meter_comp =  _<:attach( ba.linear2db : abs : vbargraph("[2][unit:db]", 0,6));
 
     //post_gain
     post_gain = par(i,N,_ * g) with {
-        g =  hslider("[9]post gain[unit:dB]", 0,-10,+10,0.5) : ba.db2linear;
+        g =  vslider("[9]makeup[unit:dB]", 0,-10,+10,0.5) : ba.db2linear;
     };
 
 };
@@ -177,7 +179,8 @@ limiter(N) = limiter_lad_N(N,limiter_lad_lookahead, init_limiter_lad_ceil : ba.d
     };
 
     // metering
-    meter_limiter_lad_N = _ <: attach(ba.linear2db : vbargraph("[8][unit:dB]GR",-12,0));
+    //meter_limiter_lad_N = _ <: attach(ba.linear2db : vbargraph("[8][unit:dB]GR",-12,0));
+    meter_limiter_lad_N = _ <: attach(ba.linear2db : abs : vbargraph("[8][unit:dB]GR",0,12));
 };
 
 
@@ -208,7 +211,14 @@ brickwall(N) = limiter_lad_N(N, limiter_lad_lookahead, limiter_lad_ceil, limiter
         };
 
     // metering
-    meter_limiter_lad_N = _ <: attach(ba.linear2db : vbargraph("[8][unit:dB]GR",-12,0));
+    meter_limiter_lad_N = _ <: attach(ba.linear2db : abs : vbargraph("[8][unit:dB]GR",0,12));
+};
+
+// METERING
+peak_meter(N) = par(i, N, (_ <: attach(_, envelop : vbargraph("[unit:dB]CH %i", -70, 0)))) with{
+    
+    vmeter(x) = attach(x, envelop(x) : vbargraph("[unit:dB]", -70, 0));
+    envelop = abs : max(ba.db2linear(-70)) : ba.linear2db : min(10) : max ~ -(40.0/ma.SR);
 };
 
 // METERING
