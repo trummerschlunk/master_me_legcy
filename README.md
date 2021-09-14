@@ -1,5 +1,5 @@
 # About master_me
-maste_me is an automatic dynamics processor originally developed for the ‘quarantine sessions' - a distributed electroacoustic network improvisation hosted weekly by Stanford University’s [CCRMA](https://ccrma.stanford.edu/) Institute in creative response to the challenges of the Covid-19 pandemic. Meanwhile, it has been used and adapted for various other streaming events.
+master_me is an automatic dynamics processor originally developed for the ‘quarantine sessions' - a distributed electroacoustic network improvisation hosted weekly by Stanford University’s [CCRMA](https://ccrma.stanford.edu/) Institute in creative response to the challenges of the Covid-19 pandemic. Meanwhile, it has been used and adapted for various other streaming events.
 
 master_me is meant as an automatic helper tool for live performances and live recordings. Applying final touches to the audio stream, it prevents clipping and distortion and makes the sound more balanced overall. master_me is NOT meant to act as a robot that automatically masters your music (which hopefully deserves more attention!).
 
