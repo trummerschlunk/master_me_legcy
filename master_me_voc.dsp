@@ -44,11 +44,15 @@ init_comp_xo1 = 150;
 init_comp_xo2 = 500;
 init_comp_xo3 = 2000;
 init_comp_xo4 = 6000;
-init_comp_makeup = 0;
+init_comp_makeup = 3;
 
 init_limiter_lad_ceil = -5;
+init_limiter_postgain = 3;
 
 init_brickwall_ceiling = -3;
+
+
+
 
 // main
 process = 
@@ -59,8 +63,8 @@ process =
    
     hgroup("MASTER_ME", hgroup("[0]INPUT",peak_meter(Nch))) :
     
-    hgroup("MASTER_ME", vgroup("[1]STEREO CORRECT",correlate_meter)) :
-    hgroup("MASTER_ME", vgroup("[1]STEREO CORRECT",correlate_correct_bp)) :
+    hgroup("MASTER_ME", hgroup("[1]STEREO CORRECT",correlate_meter)) :
+    hgroup("MASTER_ME", hgroup("[1]STEREO CORRECT",correlate_correct_bp)) :
     
     // hgroup("MASTER_ME", hgroup("[0]INPUT",lufs_any(Nch))) :
 
@@ -270,7 +274,7 @@ limiter(N) = limiter_lad_N(N,limiter_lad_lookahead, init_limiter_lad_ceil : ba.d
 
     // post_gain
     post_gain = par(i,Nch,_ * g) with {
-        g =  vslider("[9]post gain[unit:dB]", 0,-10,+10,0.5) : ba.db2linear;
+        g =  vslider("[9]post gain[unit:dB]", init_limiter_postgain,-10,+10,0.5) : ba.db2linear;
     };
 
     // metering
@@ -378,14 +382,14 @@ correlate_correct(l,r) = out_pos1, out_neg1, out_0, out_pos, out_neg :> _,_ with
     
     
     th =.0001;
-    corr_pos1 = avg(t, (corr(t,l,r) > (1-th))) : smoothing;
-    corr_neg1 = avg(t, corr(t,l,r) < (-1+th)) : smoothing;
-    corr_0 = avg(t, ((corr(t,l,r) < th) & (corr(t,l,r) > (0-th)))) : smoothing;
-    corr_pos = avg(t, ((corr(t,l,r) > (0+th)) & (corr(t,l,r) < (1-th)))) : smoothing;
-    corr_neg = avg(t, ((corr(t,l,r) > (-1+th)) & (corr(t,l,r) < (0-th)))) : smoothing;
+    corr_pos1 = avg(t, (corr(t,l,r) > (1-th))) : smoothing : vbargraph("[5]1",0,1);
+    corr_neg1 = avg(t, corr(t,l,r) < (-1+th)) : smoothing : vbargraph("[9]-1",0,1);
+    corr_0 = avg(t, ((corr(t,l,r) < th) & (corr(t,l,r) > (0-th)))) : smoothing: vbargraph("[7]0",0,1);
+    corr_pos = avg(t, ((corr(t,l,r) > (0+th)) & (corr(t,l,r) < (1-th)))) : smoothing: vbargraph("[6]>0,<1",0,1);
+    corr_neg = avg(t, ((corr(t,l,r) > (-1+th)) & (corr(t,l,r) < (0-th)))) : smoothing: vbargraph("[8]>-1,<0",0,1);
 
-    smoothing = lp1p(2) : corr_meter;
-    corr_meter = hbargraph("[9]",0,1);
+    smoothing = lp1p(2) ;
+    corr_meter = vbargraph("[9]",0,1);
 
     out_pos1 = ((l * corr_pos1 + r * corr_pos1) /2) , ((l * corr_pos1 + r * corr_pos1) /2);
     out_neg1 = ((l * corr_neg1 + (-r) * corr_neg1) /2) , ((l * corr_neg1 + (-r) * corr_neg1) /2);
