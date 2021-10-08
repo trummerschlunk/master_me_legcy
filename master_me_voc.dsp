@@ -331,7 +331,7 @@ Tg = 3; // 3 second window for 'short-term' measurement
 // zi = an.ms_envelope_rect(Tg); // mean square: average power = energy/Tg = integral of squared signal / Tg
 
 //k-filter by Julius Smith
-highpass = fi.highpass(2, 80);
+highpass = fi.highpass(2, 40);
 boostDB = 4;
 boostFreqHz = 1430; // a little too high - they should give us this!
 highshelf = fi.high_shelf(boostDB, boostFreqHz); // Looks very close, but 1 kHz gain has to be nailed
@@ -400,8 +400,7 @@ correlate_correct(l,r) = out_pos1, out_neg1, out_0, out_pos, out_neg :> _,_ with
     out_neg1 = ((l * corr_neg1 + (-r) * corr_neg1) /2) , ((l * corr_neg1 + (-r) * corr_neg1) /2);
     out_0 = (l * corr_0 + r * corr_0) , (l * corr_0 + r * corr_0);
     out_pos = l * corr_pos , r * corr_pos;
-    //out_neg = l * corr_neg , (0-(r * corr_neg));
-    out_neg = l * corr_neg , r * corr_neg;
+    out_neg = l * corr_neg , r * corr_neg; // old: out_neg = l * corr_neg , (0-(r * corr_neg));
 };
 
 // stereo correction bypass checkbox
