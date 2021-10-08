@@ -30,20 +30,25 @@ Nch = 2; //number of channels (must be even!)
 init_noisegate_threshold = -70;
 
 init_leveler_target = -18;
-init_leveler_maxboost = 40;
-init_leveler_maxcut = 40;
-init_leveler_gatethreshold = -45;
+init_leveler_maxboost = 55;
+init_leveler_maxcut = 55;
+init_leveler_gatethreshold = -50;
 init_leveler_speed = .095;
 
 init_mbmscomp_thresh = -10;
 
-init_comp_thresh = -14;
+init_comp_thresh = -22;
 init_comp_thresh_mult = 1;
-init_comp_thresh_tilt = -6;
+init_comp_thresh_tilt = -4;
+init_comp_xo1 = 150;
+init_comp_xo2 = 500;
+init_comp_xo3 = 2000;
+init_comp_xo4 = 6000;
+init_comp_makeup = 0;
 
-init_limiter_lad_ceil = -2;
+init_limiter_lad_ceil = -5;
 
-init_brickwall_ceiling = -0.7;
+init_brickwall_ceiling = -3;
 
 // main
 process = 
@@ -117,11 +122,11 @@ leveler(N) = B <: B, (B :> _ <: _,_ : calc : _ <: B) : ro.interleave(N,2) : par(
 
     target = vslider("[3]target LUFS[unit:dB]", init_leveler_target,-50,0,1);
     
-    limit_pos = vslider("[5]max boost", init_leveler_maxboost, 0, 50, 1);
-    limit_neg = vslider("[6]max cut", init_leveler_maxcut, 0, 50, 1) : ma.neg;
+    limit_pos = vslider("[5]max boost", init_leveler_maxboost, 0, 60, 1);
+    limit_neg = vslider("[6]max cut", init_leveler_maxcut, 0, 60, 1) : ma.neg;
     limit(lo,hi) = min(hi) : max(lo); 
 
-    leveler_speed = vslider("[4]speed", init_leveler_speed, .005, 0.1, .005);
+    leveler_speed = vslider("[4]speed", init_leveler_speed, .005, 0.15, .005);
     leveler_speed_gated(sc) = (gate_gain_mono(leveler_gate_thresh,0.1,0,0.1,abs(sc)) <: attach(_, (1-_) : vbargraph("[7]leveler gate",0,1))) : _ * leveler_speed;
     leveler_gate_thresh = vslider("[8]lev gate thresh[unit:dB]", init_leveler_gatethreshold,-90,0,1);
 
@@ -197,17 +202,17 @@ mbcomp(N) = par(i,N /2, split3) : comp_Nch(N) : par(i,N /2, join3 ) : post_gain 
 comp5st = _,_ : split5 : route(10,10,    1,1,  2,3,  3,5,  4,7,  5,9,  6,2,  7,4,  8,6,  9,8,  10,10) : comp_hi,comp_himid,comp_mid,comp_lomid,comp_lo :> _,_ : makeup(Nch) with {
     
     split5 = _,_ : par(i,2,fi.filterbank(3, (xo1,xo2,xo3,xo4)))  : si.bus(10)  with {
-        xo1 = 150;
-        xo2 = 500;
-        xo3 = 2000;
-        xo4 = 6000;
+        xo1 = vslider("xo1",init_comp_xo1,50,350,1);
+        xo2 = vslider("xo2",init_comp_xo2,351,1000,1);
+        xo3 = vslider("xo3",init_comp_xo3,1001,4000,1);
+        xo4 = vslider("xo4",init_comp_xo4,4001,10000,1);
     };
 
     join4 = (si.bus(5) :> _) , (si.bus(5) :> _);
 
     comp_strength = 0.6;
     comp_att = 0.02;
-    comp_rel = 0.5;
+    comp_rel = 0.05;
     comp_knee = 6;
     comp_prepost = 0;
 
@@ -215,25 +220,25 @@ comp5st = _,_ : split5 : route(10,10,    1,1,  2,3,  3,5,  4,7,  5,9,  6,2,  7,4
     comp_thresh_tilt = vslider("[2]threshold tilt",init_comp_thresh_tilt,-6,6,0.5);
 
     comp_lo    = _,_ : co.FBcompressor_N_chan(comp_strength, comp_thresh - comp_thresh_tilt, comp_att, comp_rel, comp_knee, comp_prepost, 1, meter_comp,2) with {
-        meter_comp =  _<:attach( ba.linear2db : abs : vbargraph("[4]GR lo[unit:db]", 0,6));
+        meter_comp =  _<:attach( ba.linear2db : abs : vbargraph("[4]GR lo[unit:db]", 0,12));
     };
     comp_lomid = _,_ : co.FBcompressor_N_chan(comp_strength, comp_thresh - comp_thresh_tilt / 2, comp_att, comp_rel, comp_knee, comp_prepost, 1, meter_comp,2) with {
-        meter_comp =  _<:attach( ba.linear2db : abs : vbargraph("[5]GR lo-mid[unit:db]", 0,6));
+        meter_comp =  _<:attach( ba.linear2db : abs : vbargraph("[5]GR lo-mid[unit:db]", 0,12));
     };
     comp_mid   = _,_ : co.FBcompressor_N_chan(comp_strength, comp_thresh, comp_att, comp_rel, comp_knee, comp_prepost, 1, meter_comp,2) with {
-        meter_comp =  _<:attach( ba.linear2db : abs : vbargraph("[6]GR mid[unit:db]", 0,6));
+        meter_comp =  _<:attach( ba.linear2db : abs : vbargraph("[6]GR mid[unit:db]", 0,12));
     };
     comp_himid = _,_ : co.FBcompressor_N_chan(comp_strength, comp_thresh + comp_thresh_tilt / 2, comp_att, comp_rel, comp_knee, comp_prepost, 1, meter_comp,2) with {
-        meter_comp =  _<:attach( ba.linear2db : abs : vbargraph("[7]GR hi-mid[unit:db]", 0,6));
+        meter_comp =  _<:attach( ba.linear2db : abs : vbargraph("[7]GR hi-mid[unit:db]", 0,12));
     };
     comp_hi    = _,_ : co.FBcompressor_N_chan(comp_strength, comp_thresh + comp_thresh_tilt, comp_att, comp_rel, comp_knee, comp_prepost, 1, meter_comp,2) with {
-        meter_comp =  _<:attach( ba.linear2db : abs : vbargraph("[8]GR hi[unit:db]", 0,6));
+        meter_comp =  _<:attach( ba.linear2db : abs : vbargraph("[8]GR hi[unit:db]", 0,12));
     };
 
 
     //post_gain
     makeup(n) = par(i,n,_ * g) with {
-        g =  vslider("[9]makeup[unit:dB]", 0,-10,+10,0.5) : ba.db2linear;
+        g =  vslider("[9]makeup[unit:dB]",init_comp_makeup,-10,+10,0.5) : ba.db2linear;
     };
 
     
@@ -345,7 +350,7 @@ lufs_any(N) = B <: B, (B :> Lk : vbargraph("LUFS S",-40,0)) : si.bus(N-1), attac
 
 // correlation meter
 correlate_meter(x,y) = x,y <: x , attach(y, (corr(t) : vbargraph("correlation",-1,1))) : _,_ with {
-    t = .1; // averaging period in seconds
+    t = .2; // averaging period in seconds
     
     avg(t, x) = fi.pole(p, (1 - p) * x) // 1-pole lowpass as average
         with {
@@ -379,13 +384,15 @@ correlate_correct(l,r) = out_pos1, out_neg1, out_0, out_pos, out_neg :> _,_ with
     corr_pos = avg(t, ((corr(t,l,r) > (0+th)) & (corr(t,l,r) < (1-th)))) : smoothing;
     corr_neg = avg(t, ((corr(t,l,r) > (-1+th)) & (corr(t,l,r) < (0-th)))) : smoothing;
 
-    smoothing = si.smooth(0.005);
+    smoothing = lp1p(2) : corr_meter;
+    corr_meter = hbargraph("[9]",0,1);
 
     out_pos1 = ((l * corr_pos1 + r * corr_pos1) /2) , ((l * corr_pos1 + r * corr_pos1) /2);
     out_neg1 = ((l * corr_neg1 + (-r) * corr_neg1) /2) , ((l * corr_neg1 + (-r) * corr_neg1) /2);
     out_0 = (l * corr_0 + r * corr_0) , (l * corr_0 + r * corr_0);
     out_pos = l * corr_pos , r * corr_pos;
-    out_neg = l * corr_neg , (0-(r * corr_neg));
+    //out_neg = l * corr_neg , (0-(r * corr_neg));
+    out_neg = l * corr_neg , r * corr_neg;
 };
 
 // stereo correction bypass checkbox
