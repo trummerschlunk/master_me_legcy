@@ -23,11 +23,14 @@ declare version   "2.0";
 declare copyright "(C) 2021 Klaus Scheuermann";
 import("stdfaust.lib");
 
+
+
+
 // init values
 
-Nch = 2; //number of channels (must be even!)
+Nch = 2; //number of channels (must be 2 in voc version)
 
-init_noisegate_threshold = -70;
+init_noisegate_threshold = -70; // not used in voc version
 
 init_leveler_target = -18;
 init_leveler_maxboost = 55;
@@ -35,21 +38,23 @@ init_leveler_maxcut = 55;
 init_leveler_gatethreshold = -50;
 init_leveler_speed = .095;
 
-init_mbmscomp_thresh = -10;
+init_mbmscomp_thresh = -10; // not used in voc version
 
 init_comp_thresh = -22;
-init_comp_thresh_mult = 1;
 init_comp_thresh_tilt = -4;
 init_comp_xo1 = 150;
 init_comp_xo2 = 500;
 init_comp_xo3 = 2000;
 init_comp_xo4 = 6000;
-init_comp_makeup = 3;
+init_comp_makeup = 2;
 
 init_limiter_lad_ceil = -5;
-init_limiter_postgain = 3;
+init_limiter_postgain = 2;
 
 init_brickwall_ceiling = -3;
+
+
+
 
 
 
