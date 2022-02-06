@@ -45,7 +45,7 @@ init_brickwall_ceiling = -1;
 process = 
     si.bus(Nch) : 
     
-    hgroup("MASTER_ME", hgroup("[0]INPUT",peak_meter(Nch))) :
+    // hgroup("MASTER_ME", hgroup("[0]INPUT",peak_meter(Nch))) :
     // hgroup("MASTER_ME", hgroup("[0]INPUT",lufs_any(Nch))) :
     
     dc_filter(Nch) :
@@ -55,8 +55,8 @@ process =
     hgroup("MASTER_ME", hgroup("[7]LIMITER", limiter(Nch))) :
     hgroup("MASTER_ME", hgroup("[8]BRICKWALL",brickwall(Nch))) :
     
-    hgroup("MASTER_ME", hgroup("[9]OUTPUT",lufs_any(Nch))) :
-    hgroup("MASTER_ME", hgroup("[9]OUTPUT",peak_meter(Nch))) :
+    // hgroup("MASTER_ME", hgroup("[9]OUTPUT",lufs_any(Nch))) :
+    // hgroup("MASTER_ME", hgroup("[9]OUTPUT",peak_meter(Nch))) :
     
     si.bus(Nch)
 ;
