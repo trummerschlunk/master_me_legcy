@@ -184,7 +184,7 @@ mscomp10(target) = _,_ : ms_enc : par(i,2,fibank_mono) : ro.interleave(N,2) : pa
 kneecomp(target) = ms_enc : co.RMS_FBcompressor_peak_limiter_N_chan(strength,thresh,threshLim,att,rel,knee,link,meter,meterLim,2) : ms_dec : post_gain with {
 
   strength = 0.1; //vslider("strength", 0.1, 0, 1, 0.1);
-  thresh = target + vslider("[unit:dB]tar-thr",-12,-12,6,1);
+  thresh = target + vslider("[unit:dB]tar-thr",-6,-12,6,1);
   threshLim = +3; //vslider("threshLim",3,-12,3,1);
   att = 0.4; //vslider("att",0.4,0.001,1,0.001);
   rel = 0.8; //vslider("rel",0.8,0.01,1,0.001);
